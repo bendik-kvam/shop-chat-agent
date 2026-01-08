@@ -238,7 +238,6 @@
 
         // Add user message to chat
         this.add(userMessage, 'user', messagesContainer);
-
         // Clear input
         chatInput.value = '';
 
@@ -493,7 +492,6 @@
             },
             body: requestBody
           });
-
           const reader = response.body.getReader();
           const decoder = new TextDecoder();
           let buffer = '';

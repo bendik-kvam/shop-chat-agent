@@ -22,12 +22,22 @@ export function createToolService() {
   const handleToolError = async (toolUseResponse, toolName, toolUseId, conversationHistory, sendMessage, conversationId) => {
     if (toolUseResponse.error.type === "auth_required") {
       console.log("Auth required for tool:", toolName);
-      await addToolResultToHistory(conversationHistory, toolUseId, toolUseResponse.error.data, conversationId);
-      sendMessage({ type: 'auth_required' });
+await addToolResultToHistory(
+  conversationHistory,
+  toolUseId,
+  toolUseResponse.error.data,
+  conversationId,
+  toolName
+);      sendMessage({ type: 'auth_required' });
     } else {
       console.log("Tool use error", toolUseResponse.error);
-      await addToolResultToHistory(conversationHistory, toolUseId, toolUseResponse.error.data, conversationId);
-    }
+await addToolResultToHistory(
+  conversationHistory,
+  toolUseId,
+  toolUseResponse.error.data,
+  conversationId,
+  toolName
+);    }
   };
 
   /**
@@ -117,28 +127,25 @@ export function createToolService() {
    * @param {string} content - The content of the tool result
    * @param {string} conversationId - The conversation ID
    */
-  const addToolResultToHistory = async (conversationHistory, toolUseId, content, conversationId) => {
-    const toolResultMessage = {
-      role: 'user',
-      content: [{
-        type: "tool_result",
-        tool_use_id: toolUseId,
-        content: content
-      }]
-    };
-
-    // Add to in-memory history
-    conversationHistory.push(toolResultMessage);
-
-    // Save to database with special format to indicate tool result
-    if (conversationId) {
-      try {
-        await saveMessage(conversationId, 'user', JSON.stringify(toolResultMessage.content));
-      } catch (error) {
-        console.error('Error saving tool result to database:', error);
-      }
-    }
+  const addToolResultToHistory = async (conversationHistory, toolCallId, content, conversationId, toolName) => {
+  const toolResultMessage = {
+    role: "tool",
+    tool_call_id: toolCallId,
+    // name is optional in many stacks, but including it helps debugging
+    name: toolName,
+    content: typeof content === "string" ? content : JSON.stringify(content),
   };
+
+  conversationHistory.push(toolResultMessage);
+
+  if (conversationId) {
+    try {
+      await saveMessage(conversationId, "tool", JSON.stringify(toolResultMessage));
+    } catch (error) {
+      console.error("Error saving tool result to database:", error);
+    }
+  }
+};
 
   return {
     handleToolError,

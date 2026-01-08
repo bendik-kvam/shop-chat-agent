@@ -6,8 +6,8 @@
 export const AppConfig = {
   // API Configuration
   api: {
-    defaultModel: 'claude-sonnet-4-20250514',
-    maxTokens: 2000,
+    defaultModel: 'gpt-5.2-2025-12-11',
+   // maxTokens: 2000,
     defaultPromptType: 'standardAssistant',
   },
 

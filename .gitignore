@@ -20,6 +20,7 @@ pnpm-lock.yaml
 shopify.*.toml
 !shopify.app.toml
 !shopify.web.toml
+!shopify.app.test-shop-chat-agent.toml
 
 /extensions/*/dist
 

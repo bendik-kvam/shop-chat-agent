@@ -1,7 +1,13 @@
 //import { OpenAI } from "openai/client.js";
 import systemPrompts from "../prompts/prompts.json";
 import AppConfig from "./config.server";
-import { Agent, tool, run, setDefaultOpenAIKey } from "@openai/agents";
+import {
+  Agent,
+  tool,
+  run,
+  setDefaultOpenAIKey,
+  hostedMcpTool,
+} from "@openai/agents";
 import { z } from "zod";
 function toInputTextArray(content) {
   // Already in the array form the adapter expects
@@ -40,13 +46,16 @@ function normalizeMessagesForAgents(messages) {
 
     if (m.role === "tool") {
       // tool messages: keep as-is (usually required by runner)
-      return { ...m, content: typeof m.content === "string" ? m.content : JSON.stringify(m.content) };
+      return {
+        ...m,
+        content:
+          typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+      };
     }
 
     return { ...m, content: text };
   });
 }
-
 
 export const createAgent = ({
   mcpClient,
@@ -57,9 +66,11 @@ export const createAgent = ({
   conversationId,
   productsToDisplay,
 }) => {
-    const getSystemPrompt = (promptType) => {
-    return systemPrompts.systemPrompts[promptType]?.content ||
-      systemPrompts.systemPrompts[AppConfig.api.defaultPromptType].content;
+  const getSystemPrompt = (promptType) => {
+    return (
+      systemPrompts.systemPrompts[promptType]?.content ||
+      systemPrompts.systemPrompts[AppConfig.api.defaultPromptType].content
+    );
   };
   const systemInstruction = getSystemPrompt(promptType);
 
@@ -69,7 +80,7 @@ export const createAgent = ({
     tool({
       name: t.name,
       description: t.description,
-          strict: false,                 // ✅ key line :contentReference[oaicite:1]{index=1}
+      strict: false, // ✅ key line :contentReference[oaicite:1]{index=1}
 
       parameters: t.input_schema,
       execute: async (input) => {
@@ -89,35 +100,48 @@ export const createAgent = ({
             "tool_call_id_unavailable_here",
             [], // conversationHistory not needed if you handle tool loop inside Agents
             stream?.sendMessage,
-            conversationId
+            conversationId,
           );
-          return typeof res.error.data === "string" ? res.error.data : JSON.stringify(res.error.data);
+          return typeof res.error.data === "string"
+            ? res.error.data
+            : JSON.stringify(res.error.data);
         } else {
           // product parsing
-          if (t.name === AppConfig.tools.productSearchName && productsToDisplay) {
-            productsToDisplay.push(...toolService.processProductSearchResult(res));
+          if (
+            t.name === AppConfig.tools.productSearchName &&
+            productsToDisplay
+          ) {
+            productsToDisplay.push(
+              ...toolService.processProductSearchResult(res),
+            );
           }
           return typeof res === "string" ? res : JSON.stringify(res);
         }
       },
-    })
+    }),
   );
 
   const agent = new Agent({
     name: "Store agent",
     instructions: systemInstruction,
-    tools: agentTools,
+    tools: [
+      hostedMcpTool({
+        serverLabel: "storefront_mcp",
+        serverUrl: mcpClient.storefrontMcpEndpoint,
+      }),
+    ],
   });
   const runAgent = async ({ messages }, streamHandlers) => {
-    console.log("test")
-  const normalized = normalizeMessagesForAgents(messages);
-console.log(normalized)
+    console.log("test");
+    const normalized = normalizeMessagesForAgents(messages);
+    console.log(normalized);
     const s = await run(agent, normalized, { stream: true });
 
     for await (const event of s) {
       if (
         event.type === "raw_model_stream_event" &&
-        (event.data?.type === "output_text_delta" || event.data?.type === "output_text.delta")
+        (event.data?.type === "output_text_delta" ||
+          event.data?.type === "output_text.delta")
       ) {
         streamHandlers?.onText?.(event.data.delta);
       }

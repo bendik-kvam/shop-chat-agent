@@ -13,8 +13,7 @@ import AppConfig from "../services/config.server";
 import { createSseStream } from "../services/streaming.server";
 import { createAgent } from "../services/openai.server";
 import { createToolService } from "../services/tool.server";
-import { tool } from "@openai/agents";
-import z from "zod";
+
 // JSDoc types will be used for AgentInputItem instead of runtime import
 
 /**

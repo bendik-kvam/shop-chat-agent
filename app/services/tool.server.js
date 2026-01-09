@@ -95,7 +95,7 @@ export function createToolService() {
 
       if (toolUseResponse.content && toolUseResponse.content.length > 0) {
         const content = toolUseResponse.content[0].text;
-
+        console.log(toolUseResponse);
         try {
           let responseData;
           if (typeof content === "object") {

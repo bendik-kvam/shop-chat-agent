@@ -72,7 +72,17 @@ export async function action({ request }) {
  * @returns {Response} JSON response with chat history
  */
 async function handleHistoryRequest(request, conversationId) {
-  const messages = await getConversationHistory(conversationId);
+  // Normalize content so clients don't receive JSON-stringified strings
+  const rawMessages = await getConversationHistory(conversationId);
+  const messages = rawMessages.map((m) => {
+    let content;
+    try {
+      content = JSON.parse(m.content);
+    } catch {
+      content = m.content;
+    }
+    return { ...m, content };
+  });
 
   return new Response(JSON.stringify({ messages }), {
     headers: getCorsHeaders(request),
@@ -230,13 +240,17 @@ async function handleChatSession({
         onMessage: (message) => {
           conversationHistory.push(message);
 
-          saveMessage(
-            conversationId,
-            message.role,
-            JSON.stringify(message.content),
-          ).catch((error) => {
-            console.error("Error saving message to database:", error);
-          });
+          // Avoid double-quoting assistant content; save strings as-is
+          const contentToSave =
+            typeof message.content === "string"
+              ? message.content
+              : JSON.stringify(message.content);
+
+          saveMessage(conversationId, message.role, contentToSave).catch(
+            (error) => {
+              console.error("Error saving message to database:", error);
+            },
+          );
 
           stream.sendMessage({ type: "message_complete" });
         },
@@ -265,21 +279,10 @@ async function handleChatSession({
       conversationHistory,
     );
 
-    // End of turn
+    // End of turn (send once)
     stream.sendMessage({ type: "end_turn" });
 
-    // If you still have productsToDisplay logic, send it
-    if (productsToDisplay.length > 0) {
-      stream.sendMessage({
-        type: "product_results",
-        products: productsToDisplay,
-      });
-    }
-
-    // Signal end of turn
-    stream.sendMessage({ type: "end_turn" });
-
-    // Send product results if available
+    // Send product results if available (send once)
     if (productsToDisplay.length > 0) {
       stream.sendMessage({
         type: "product_results",

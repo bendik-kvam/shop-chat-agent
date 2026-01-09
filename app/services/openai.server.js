@@ -9,6 +9,7 @@ import {
   hostedMcpTool,
 } from "@openai/agents";
 import { z } from "zod";
+import { agentToolRawItemToToolUsage } from "./tooUseHelper";
 function toInputTextArray(content) {
   // Already in the array form the adapter expects
   if (Array.isArray(content)) return content;
@@ -24,6 +25,7 @@ function toInputTextArray(content) {
   // Anything else (object/number/etc) -> stringify
   return [{ type: "input_text", text: JSON.stringify(content) }];
 }
+
 function normalizeMessagesForAgents(messages) {
   return messages.map((m) => {
     const text =
@@ -45,11 +47,44 @@ function normalizeMessagesForAgents(messages) {
     }
 
     if (m.role === "tool") {
-      // tool messages: keep as-is (usually required by runner)
+      // Unwrap if someone stored the whole tool message inside content
+      let tool_call_id = m.tool_call_id;
+      let content = m.content;
+      let name = m.name;
+
+      // Case A: content is already an object { role:"tool", tool_call_id, content }
+      if (content && typeof content === "object" && !Array.isArray(content)) {
+        if (content.role === "tool" && content.tool_call_id) {
+          tool_call_id = tool_call_id ?? content.tool_call_id;
+          name = name ?? content.name;
+          content = content.content; // <-- unwrap to output only
+        }
+      }
+
+      // Case B: content is a stringified tool message JSON
+      if (typeof content === "string") {
+        try {
+          const parsed = JSON.parse(content);
+          if (parsed?.role === "tool" && parsed?.tool_call_id) {
+            tool_call_id = tool_call_id ?? parsed.tool_call_id;
+            name = name ?? parsed.name;
+            content = parsed.content; // <-- unwrap to output only
+          }
+        } catch {
+          // ignore parse errors; treat as normal tool output
+        }
+      }
+
+      // Final normalize: tool content must be a string (tool output),
+      // and tool_call_id must be present at top-level.
+      const outputText =
+        typeof content === "string" ? content : JSON.stringify(content ?? {});
+
       return {
-        ...m,
-        content:
-          typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+        role: "tool",
+        tool_call_id, // IMPORTANT
+        ...(name ? { name } : {}),
+        content: outputText,
       };
     }
 
@@ -76,51 +111,6 @@ export const createAgent = ({
 
   setDefaultOpenAIKey(process.env.OPENAI_API_KEY);
 
-  const agentTools = mcpToolDescriptors.map((t) =>
-    tool({
-      name: t.name,
-      description: t.description,
-      strict: false, // ✅ key line :contentReference[oaicite:1]{index=1}
-
-      parameters: t.input_schema,
-      execute: async (input) => {
-        // Optional: notify UI that a tool is being called
-        stream?.sendMessage?.({
-          type: "tool_use",
-          tool_use_message: `Calling tool: ${t.name} with arguments: ${JSON.stringify(input)}`,
-        });
-
-        const res = await mcpClient.callTool(t.name, input);
-
-        // Optional: reuse your existing success/error handlers
-        if (res?.error) {
-          await toolService?.handleToolError?.(
-            res,
-            t.name,
-            "tool_call_id_unavailable_here",
-            [], // conversationHistory not needed if you handle tool loop inside Agents
-            stream?.sendMessage,
-            conversationId,
-          );
-          return typeof res.error.data === "string"
-            ? res.error.data
-            : JSON.stringify(res.error.data);
-        } else {
-          // product parsing
-          if (
-            t.name === AppConfig.tools.productSearchName &&
-            productsToDisplay
-          ) {
-            productsToDisplay.push(
-              ...toolService.processProductSearchResult(res),
-            );
-          }
-          return typeof res === "string" ? res : JSON.stringify(res);
-        }
-      },
-    }),
-  );
-
   const agent = new Agent({
     name: "Store agent",
     instructions: systemInstruction,
@@ -131,13 +121,48 @@ export const createAgent = ({
       }),
     ],
   });
-  const runAgent = async ({ messages }, streamHandlers) => {
-    const normalized = normalizeMessagesForAgents(messages);
-    console.log(normalized);
+  const runAgent = async (
+    { messages },
+    streamHandlers,
+    conversationHistory,
+  ) => {
+    const replayable = messages.filter((m) => m.role !== "tool");
+    const normalized = normalizeMessagesForAgents(replayable);
+
+    console.log("Normalized input:", normalized);
+
     const s = await run(agent, normalized, { stream: true });
 
     for await (const event of s) {
-      console.log("Stream event:", event);
+      if (event.name === "tool_called") {
+        const raw = event.item?.rawItem;
+        // IMPORTANT: tool_call_id for the "tool" message must match the call id
+        const toolUseId = raw?.id;
+        const toolName = raw?.providerData?.name || "unknown_tool";
+
+        const toolUsage = agentToolRawItemToToolUsage(raw);
+        if (toolUsage.error) {
+          await toolService.handleToolError(
+            toolUsage,
+            toolName,
+            toolUseId,
+            normalized,
+            stream.sendMessage,
+            conversationId,
+          );
+        } else {
+          await toolService.handleToolSuccess(
+            toolUsage,
+            toolName,
+            toolUseId,
+            normalized,
+            productsToDisplay,
+            conversationId,
+          );
+        }
+
+        continue;
+      }
       if (
         event.type === "raw_model_stream_event" &&
         (event.data?.type === "output_text_delta" ||

@@ -181,17 +181,8 @@ async function handleChatSession({
         error.message,
       );
     }
-    //create agent
-    let productsToDisplay = [];
-    const openaiAgent = createAgent({
-      mcpClient,
-      tools: mcpClient.tools,
-      promptType,
-      toolService,
-      stream, // optional if you want UI events inside execute
-      conversationId,
-      productsToDisplay,
-    }); // Prepare conversation state
+
+    // Prepare conversation state
     let conversationHistory = [];
 
     // Save user message to the database
@@ -214,6 +205,19 @@ async function handleChatSession({
       };
     });
     console.log(conversationHistory);
+
+    //create agent
+    let productsToDisplay = [];
+    const openaiAgent = createAgent({
+      mcpClient,
+      tools: mcpClient.tools,
+      promptType,
+      toolService,
+      stream, // optional if you want UI events inside execute
+      conversationId,
+      productsToDisplay,
+    });
+
     // Execute the conversation stream
 
     const finalMessage = await openaiAgent.runAgent(
@@ -236,7 +240,29 @@ async function handleChatSession({
 
           stream.sendMessage({ type: "message_complete" });
         },
+        onToolUse: async (toolUsage) => {
+          if (toolUsage.error) {
+            await toolService.handleToolError(
+              toolUsage,
+              toolName,
+              toolUseId,
+              conversationHistory,
+              stream.sendMessage,
+              conversationId,
+            );
+          } else {
+            await toolService.handleToolSuccess(
+              toolUsage,
+              toolName,
+              toolUseId,
+              conversationHistory,
+              productsToDisplay,
+              conversationId,
+            );
+          }
+        },
       },
+      conversationHistory,
     );
 
     // End of turn

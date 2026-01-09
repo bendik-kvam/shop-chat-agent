@@ -19,25 +19,34 @@ export function createToolService() {
    * @param {Function} sendMessage - Function to send messages to the client
    * @param {string} conversationId - The conversation ID
    */
-  const handleToolError = async (toolUseResponse, toolName, toolUseId, conversationHistory, sendMessage, conversationId) => {
+  const handleToolError = async (
+    toolUseResponse,
+    toolName,
+    toolUseId,
+    conversationHistory,
+    sendMessage,
+    conversationId,
+  ) => {
     if (toolUseResponse.error.type === "auth_required") {
       console.log("Auth required for tool:", toolName);
-await addToolResultToHistory(
-  conversationHistory,
-  toolUseId,
-  toolUseResponse.error.data,
-  conversationId,
-  toolName
-);      sendMessage({ type: 'auth_required' });
+      await addToolResultToHistory(
+        conversationHistory,
+        toolUseId,
+        toolUseResponse.error.data,
+        conversationId,
+        toolName,
+      );
+      sendMessage({ type: "auth_required" });
     } else {
       console.log("Tool use error", toolUseResponse.error);
-await addToolResultToHistory(
-  conversationHistory,
-  toolUseId,
-  toolUseResponse.error.data,
-  conversationId,
-  toolName
-);    }
+      await addToolResultToHistory(
+        conversationHistory,
+        toolUseId,
+        toolUseResponse.error.data,
+        conversationId,
+        toolName,
+      );
+    }
   };
 
   /**
@@ -49,13 +58,29 @@ await addToolResultToHistory(
    * @param {Array} productsToDisplay - Array to add product results to
    * @param {string} conversationId - The conversation ID
    */
-  const handleToolSuccess = async (toolUseResponse, toolName, toolUseId, conversationHistory, productsToDisplay, conversationId) => {
+  const handleToolSuccess = async (
+    toolUseResponse,
+    toolName,
+    toolUseId,
+    conversationHistory,
+    productsToDisplay,
+    conversationId,
+  ) => {
     // Check if this is a product search result
+    console.log("Handling tool success for tool:", toolName);
+    console.log("Tool use response:", toolUseResponse);
     if (toolName === AppConfig.tools.productSearchName) {
       productsToDisplay.push(...processProductSearchResult(toolUseResponse));
     }
+    const outputText = toolUseResponse?.content?.[0]?.text ?? "";
+    console.log("Tool output text:", outputText);
 
-    addToolResultToHistory(conversationHistory, toolUseId, toolUseResponse.content, conversationId);
+    addToolResultToHistory(
+      conversationHistory,
+      toolUseId,
+      outputText,
+      conversationId,
+    );
   };
 
   /**
@@ -73,9 +98,9 @@ await addToolResultToHistory(
 
         try {
           let responseData;
-          if (typeof content === 'object') {
+          if (typeof content === "object") {
             responseData = content;
-          } else if (typeof content === 'string') {
+          } else if (typeof content === "string") {
             responseData = JSON.parse(content);
           }
 
@@ -106,17 +131,19 @@ await addToolResultToHistory(
   const formatProductData = (product) => {
     const price = product.price_range
       ? `${product.price_range.currency} ${product.price_range.min}`
-      : (product.variants && product.variants.length > 0
+      : product.variants && product.variants.length > 0
         ? `${product.variants[0].currency} ${product.variants[0].price}`
-        : 'Price not available');
+        : "Price not available";
 
     return {
-      id: product.product_id || `product-${Math.random().toString(36).substring(7)}`,
-      title: product.title || 'Product',
+      id:
+        product.product_id ||
+        `product-${Math.random().toString(36).substring(7)}`,
+      title: product.title || "Product",
       price: price,
-      image_url: product.image_url || '',
-      description: product.description || '',
-      url: product.url || ''
+      image_url: product.image_url || "",
+      description: product.description || "",
+      url: product.url || "",
     };
   };
 
@@ -127,34 +154,47 @@ await addToolResultToHistory(
    * @param {string} content - The content of the tool result
    * @param {string} conversationId - The conversation ID
    */
-  const addToolResultToHistory = async (conversationHistory, toolCallId, content, conversationId, toolName) => {
-  const toolResultMessage = {
-    role: "tool",
-    tool_call_id: toolCallId,
-    // name is optional in many stacks, but including it helps debugging
-    name: toolName,
-    content: typeof content === "string" ? content : JSON.stringify(content),
-  };
+  const addToolResultToHistory = async (
+    conversationHistory,
+    toolCallId,
+    content,
+    conversationId,
+    toolName,
+  ) => {
+    const outputText =
+      typeof content === "string" ? content : JSON.stringify(content);
 
-  conversationHistory.push(toolResultMessage);
+    const toolResultMessage = {
+      role: "tool",
+      tool_call_id: toolCallId,
+      // name is optional in many stacks, but including it helps debugging
+      name: toolName,
+      content: outputText,
+    };
 
-  if (conversationId) {
-    try {
-      await saveMessage(conversationId, "tool", JSON.stringify(toolResultMessage));
-    } catch (error) {
-      console.error("Error saving tool result to database:", error);
+    conversationHistory.push(toolResultMessage);
+
+    if (conversationId) {
+      try {
+        await saveMessage(
+          conversationId,
+          "tool",
+          JSON.stringify(toolResultMessage),
+        );
+      } catch (error) {
+        console.error("Error saving tool result to database:", error);
+      }
     }
-  }
-};
+  };
 
   return {
     handleToolError,
     handleToolSuccess,
     processProductSearchResult,
-    addToolResultToHistory
+    addToolResultToHistory,
   };
 }
 
 export default {
-  createToolService
+  createToolService,
 };

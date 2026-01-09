@@ -132,12 +132,12 @@ export const createAgent = ({
     ],
   });
   const runAgent = async ({ messages }, streamHandlers) => {
-    console.log("test");
     const normalized = normalizeMessagesForAgents(messages);
     console.log(normalized);
     const s = await run(agent, normalized, { stream: true });
 
     for await (const event of s) {
+      console.log("Stream event:", event);
       if (
         event.type === "raw_model_stream_event" &&
         (event.data?.type === "output_text_delta" ||

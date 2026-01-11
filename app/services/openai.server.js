@@ -8,8 +8,9 @@ import {
   setDefaultOpenAIKey,
   hostedMcpTool,
 } from "@openai/agents";
-import { z } from "zod";
 import { agentToolRawItemToToolUsage } from "./tooUseHelper";
+import { getCatalogJWT } from "./catalog.server.js";
+
 function toInputTextArray(content) {
   // Already in the array form the adapter expects
   if (Array.isArray(content)) return content;
@@ -92,7 +93,7 @@ function normalizeMessagesForAgents(messages) {
   });
 }
 
-export const createAgent = ({
+export const createAgent = async ({
   mcpClient,
   tools: mcpToolDescriptors,
   promptType,
@@ -110,7 +111,7 @@ export const createAgent = ({
   const systemInstruction = getSystemPrompt(promptType);
 
   setDefaultOpenAIKey(process.env.OPENAI_API_KEY);
-
+const access_token = await getCatalogJWT();
   const agent = new Agent({
     name: "Store agent",
     instructions: systemInstruction,
@@ -119,6 +120,15 @@ export const createAgent = ({
         serverLabel: "storefront_mcp",
         serverUrl: mcpClient.storefrontMcpEndpoint,
       }),
+     /**
+      *  hostedMcpTool({
+        serverLabel:"checkout_mcp",
+        serverUrl: mcpClient.checkoutMcpEndpoint,
+headers: {
+    Authorization: `Bearer ${access_token.trim()}`,
+    "Content-Type": "application/json",
+  },      })
+      */
     ],
   });
   const runAgent = async (

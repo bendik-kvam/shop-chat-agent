@@ -218,7 +218,7 @@ async function handleChatSession({
 
     //create agent
     let productsToDisplay = [];
-    const openaiAgent = createAgent({
+    const openaiAgent = await createAgent({
       mcpClient,
       tools: mcpClient.tools,
       promptType,

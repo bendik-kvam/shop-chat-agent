@@ -3,14 +3,35 @@
 
 <div class="shop-ai-chat-container">
   <div class="shop-ai-chat-bubble" style="background-color: {{ block.settings.chat_bubble_color }}">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-    </svg>
+    {% if block.settings.chat_bubble_image %}
+      <img
+        src="{{ block.settings.chat_bubble_image | img_url: '1000x1000' }}"
+        height="100px"
+        width="100px"
+        alt="Chat Bubble"
+      >
+    {% else %}
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        width="24"
+        height="24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    {% endif %}
   </div>
 
   <div class="shop-ai-chat-window">
     <div class="shop-ai-chat-header">
-      <div>{{ 'chat.title' | t }}</div>
+      <div>
+        {{ 'chat.title' | t }}
+      </div>
       <button class="shop-ai-chat-close">✕</button>
     </div>
 
@@ -21,7 +42,17 @@
     <div class="shop-ai-chat-input">
       <input type="text" placeholder="{{ 'chat.inputPlaceholder' | t }}">
       <button class="shop-ai-chat-send">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
           <line x1="22" y1="2" x2="11" y2="13"></line>
           <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
         </svg>
@@ -51,6 +82,12 @@
       "default": "#5046e4"
     },
     {
+      "type": "image_picker",
+      "id": "chat_bubble_image",
+      "label": "Chat Bubble Image",
+      "info": "Optional: Upload a custom image for the chat bubble icon."
+    },
+    {
       "type": "text",
       "id": "welcome_message",
       "label": "Welcome Message",
@@ -69,7 +106,7 @@
           "value": "enthusiasticAssistant",
           "label": "Enthusiastic Assistant"
         },
-         {
+        {
           "value": "appsalonAssistant",
           "label": "Appsalon Assistant"
         }

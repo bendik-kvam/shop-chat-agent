@@ -21,6 +21,8 @@
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     transition: transform 0.3s ease;
+    overflow: hidden;
+    object-fit: cover;
   }
   
   @media (max-width: 480px) {
@@ -35,6 +37,12 @@
     }
   }
 
+  .shop-ai-chat-bubble img{
+    width: 100%;
+    height: 100%;
+  
+    border-radius: 50%;
+  }
   .shop-ai-chat-bubble:hover {
     transform: scale(1.05);
   }
@@ -43,6 +51,7 @@
     width: 30px;
     height: 30px;
     color: white;
+
   }
 
   .shop-ai-chat-window {

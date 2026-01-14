@@ -5,14 +5,41 @@ export default function Index() {
 
       <s-section>
         <s-stack gap="base">
-          <s-heading>Congrats on creating a new Shopify app 🎉</s-heading>
+          <s-heading>Chat data</s-heading>
           <s-paragraph>
-            This is a reference app that adds a chat agent on your storefront,
-            which is powered via claude and can connect shopify mcp platform.
+            Here you can see the usage on your store's chat
           </s-paragraph>
         </s-stack>
       </s-section>
+      <s-section>
+        <s-grid
+          gridTemplateColumns="@container (inline-size <= 400px) 1fr, 1fr auto 1fr auto 1fr"
+          gap="small"
+        >
+          <s-grid gap="small-300">
+            <s-heading>Today</s-heading>
+            <s-stack direction="inline" gap="small-200">
+              <s-text>15</s-text>
+              <s-badge tone="warning" icon="arrow-down">
+                {" "}
+                12%{" "}
+              </s-badge>
+            </s-stack>
+          </s-grid>
+          <s-divider direction="block" />
 
+          <s-grid gap="small-300">
+            <s-heading>Today</s-heading>
+            <s-stack direction="inline" gap="small-200">
+              <s-text>15</s-text>
+              <s-badge tone="warning" icon="arrow-down">
+                {" "}
+                12%{" "}
+              </s-badge>
+            </s-stack>
+          </s-grid>
+        </s-grid>
+      </s-section>
       <s-section heading="App template specs" slot="aside">
         <s-paragraph>
           <s-text>Framework: </s-text>

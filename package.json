@@ -86,7 +86,9 @@
   },
   "author": "siddhantbajaj",
   "lint-staged": {
-    "*.{js,jsx}": "eslint --cache --fix",
-    "*.{js,css,md}": "prettier --write"
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }

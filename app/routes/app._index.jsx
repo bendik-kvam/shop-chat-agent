@@ -7,7 +7,7 @@ export default function Index() {
         <s-stack gap="base">
           <s-heading>Chat data</s-heading>
           <s-paragraph>
-            Here you can see the usage on your store's chat
+            Here you can see the usage on your store&apos;s chat
           </s-paragraph>
         </s-stack>
       </s-section>

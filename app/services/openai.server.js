@@ -1,17 +1,11 @@
 //import { OpenAI } from "openai/client.js";
 import systemPrompts from "../prompts/prompts.json";
 import AppConfig from "./config.server";
-import {
-  Agent,
-  tool,
-  run,
-  setDefaultOpenAIKey,
-  hostedMcpTool,
-} from "@openai/agents";
+import { Agent, run, setDefaultOpenAIKey, hostedMcpTool } from "@openai/agents";
 import { agentToolRawItemToToolUsage } from "./tooUseHelper";
-import { getCatalogJWT } from "./catalog.server.js";
+//import { getCatalogJWT } from "./catalog.server.js";
 
-function toInputTextArray(content) {
+export function toInputTextArray(content) {
   // Already in the array form the adapter expects
   if (Array.isArray(content)) return content;
 
@@ -95,7 +89,6 @@ function normalizeMessagesForAgents(messages) {
 
 export const createAgent = async ({
   mcpClient,
-  tools: mcpToolDescriptors,
   promptType,
   toolService,
   stream,
@@ -111,7 +104,7 @@ export const createAgent = async ({
   const systemInstruction = getSystemPrompt(promptType);
 
   setDefaultOpenAIKey(process.env.OPENAI_API_KEY);
-const access_token = await getCatalogJWT();
+  //const access_token = await getCatalogJWT();
   const agent = new Agent({
     name: "Store agent",
     instructions: systemInstruction,
@@ -120,7 +113,7 @@ const access_token = await getCatalogJWT();
         serverLabel: "storefront_mcp",
         serverUrl: mcpClient.storefrontMcpEndpoint,
       }),
-     /**
+      /**
       *  hostedMcpTool({
         serverLabel:"checkout_mcp",
         serverUrl: mcpClient.checkoutMcpEndpoint,
@@ -131,11 +124,7 @@ headers: {
       */
     ],
   });
-  const runAgent = async (
-    { messages },
-    streamHandlers,
-    conversationHistory,
-  ) => {
+  const runAgent = async ({ messages }, streamHandlers) => {
     const replayable = messages.filter((m) => m.role !== "tool");
     const normalized = normalizeMessagesForAgents(replayable);
 

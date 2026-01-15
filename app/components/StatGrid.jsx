@@ -1,5 +1,4 @@
-import React from "react";
-import StatBox from "./statBox";
+import StatBox from "./StatBox";
 
 const statGrid = ({ title, children }) => {
   return (

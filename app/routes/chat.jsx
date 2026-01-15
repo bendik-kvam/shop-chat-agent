@@ -230,7 +230,7 @@ async function handleChatSession({
 
     // Execute the conversation stream
 
-    const finalMessage = await openaiAgent.runAgent(
+    await openaiAgent.runAgent(
       { messages: conversationHistory, promptType },
       {
         onText: (textDelta) => {

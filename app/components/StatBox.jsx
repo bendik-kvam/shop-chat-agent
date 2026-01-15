@@ -1,5 +1,3 @@
-import React from "react";
-
 const StatBox = ({ title, value, percentage, status }) => {
   return (
     <s-grid gap="small-300">

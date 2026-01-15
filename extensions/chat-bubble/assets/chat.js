@@ -452,7 +452,7 @@
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
           const unorderedMatch = line.match(/^\s*([-*])\s+(.*)/);
-          const orderedMatch = line.match(/^\s*(\d+)[\.)]\s+(.*)/);
+          const orderedMatch = line.match(/^\s*(\d+)[.).]\s+(.*)/);
 
           if (unorderedMatch) {
             if (currentList !== "ul") {
@@ -557,7 +557,8 @@
           currentMessageElement = messageElement;
 
           // Process the stream
-          while (true) {
+          const running = true;
+          while (running) {
             const { value, done } = await reader.read();
             if (done) break;
 
